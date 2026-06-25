@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goal Planning - XFinance</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            margin-bottom: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .goal-card {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            transition: transform 0.2s;
+        }
+
+        .goal-card:hover {
+            transform: translateX(4px);
+        }
+
+        .goal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .goal-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .goal-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-completed {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .progress-bar {
+            background: #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 12px 0;
+        }
+
+        .progress-fill {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 8px;
+            transition: width 0.3s;
+        }
+
+        .goal-details {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 12px;
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .btn-add {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-top: 20px;
+        }
+
+        .btn-add:hover {
+            transform: translateY(-2px);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 24px;
+            padding: 32px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: white;
+            text-decoration: none;
+        }
+
+        .suggestion-card {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <i class="fas fa-bullseye" style="font-size: 48px; color: #667eea;"></i>
+                <h1>Financial Goals</h1>
+                <p style="color: #64748b;">Set, track, and achieve your financial targets</p>
+            </div>
+
+            <div id="suggestionArea"></div>
+            <div id="goalsList"></div>
+            <button class="btn-add" onclick="openAddGoalModal()">
+                <i class="fas fa-plus"></i> Add New Goal
+            </button>
+        </div>
+        <a href="/" class="back-link">← Back to Dashboard</a>
+    </div>
+
+    <!-- Add Goal Modal -->
+    <div id="goalModal" class="modal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h3>Create New Goal</h3>
+                <i class="fas fa-times" style="cursor: pointer;" onclick="closeModal()"></i>
+            </div>
+            <form id="goalForm">
+                <div class="form-group">
+                    <label>Goal Name</label>
+                    <input type="text" id="goalName" placeholder="e.g., Emergency Fund, Vacation" required>
+                </div>
+                <div class="form-group">
+                    <label>Target Amount (₹)</label>
+                    <input type="number" id="goalTarget" placeholder="50000" required>
+                </div>
+                <div class="form-group">
+                    <label>Deadline</label>
+                    <input type="date" id="goalDeadline" required>
+                </div>
+                <button type="submit" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 12px; font-weight: 600; cursor: pointer;">
+                    Create Goal
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        async function loadGoals() {
+            try {
+                const response = await fetch('/api/goals');
+                const data = await response.json();
+                if (data.success) {
+                    displayGoals(data.goals);
+                    if (data.suggestion) {
+                        displaySuggestion(data.suggestion);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading goals:', error);
+            }
+        }
+
+        function displayGoals(goals) {
+            const container = document.getElementById('goalsList');
+            if (goals.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #64748b; padding: 40px;">No goals yet. Create your first financial goal!</p>';
+                return;
+            }
+            
+            container.innerHTML = goals.map(goal => {
+                const progress = (goal.current_amount / goal.target_amount * 100).toFixed(1);
+                const monthsLeft = Math.max(1, Math.ceil((new Date(goal.deadline) - new Date()) / (1000 * 60 * 60 * 24 * 30)));
+                const monthlyNeeded = (goal.target_amount - goal.current_amount) / monthsLeft;
+                
+                return `
+                    <div class="goal-card">
+                        <div class="goal-header">
+                            <span class="goal-name">${goal.name}</span>
+                            <span class="goal-status status-${goal.status}">${goal.status}</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progress}%"></div>
+                        </div>
+                        <div class="goal-details">
+                            <span>₹${goal.current_amount.toLocaleString()} / ₹${goal.target_amount.toLocaleString()}</span>
+                            <span>${progress}% completed</span>
+                        </div>
+                        <div class="goal-details">
+                            <span>📅 Deadline: ${goal.deadline}</span>
+                            <span>💰 Need ₹${monthlyNeeded.toFixed(0)}/month</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function displaySuggestion(suggestion) {
+            if (suggestion && suggestion.suggestion) {
+                document.getElementById('suggestionArea').innerHTML = `
+                    <div class="suggestion-card">
+                        <i class="fas fa-lightbulb" style="font-size: 24px; margin-bottom: 8px;"></i>
+                        <h3 style="margin-bottom: 8px;">Suggested Goal</h3>
+                        <p><strong>${suggestion.suggestion}</strong></p>
+                        <p>Target: ₹${suggestion.target?.toLocaleString() || 'N/A'}</p>
+                        <p>${suggestion.reason || 'Start your financial journey today!'}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function createGoal(goal) {
+            try {
+                const response = await fetch('/api/goals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(goal)
+                });
+                if (response.ok) {
+                    loadGoals();
+                    closeModal();
+                    alert('Goal created successfully!');
+                }
+            } catch (error) {
+                console.error('Error creating goal:', error);
+                alert('Failed to create goal');
+            }
+        }
+
+        function openAddGoalModal() {
+            document.getElementById('goalModal').style.display = 'flex';
+            document.getElementById('goalDeadline').value = new Date(new Date().setMonth(new Date().getMonth() + 6)).toISOString().split('T')[0];
+        }
+
+        function closeModal() {
+            document.getElementById('goalModal').style.display = 'none';
+        }
+
+        document.getElementById('goalForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            createGoal({
+                name: document.getElementById('goalName').value,
+                target_amount: parseFloat(document.getElementById('goalTarget').value),
+                deadline: document.getElementById('goalDeadline').value
+            });
+        });
+
+        // Load goals on page load
+        loadGoals();
+    </script>
+</body>
+</html>

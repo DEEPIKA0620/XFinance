@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What-if Simulation - XFinance</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            margin-bottom: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #334155;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 14px;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        .result-card {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 24px;
+            margin-top: 24px;
+        }
+
+        .result-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #0f172a;
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .result-label {
+            color: #64748b;
+        }
+
+        .result-value {
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .impact-positive {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 12px;
+            border-radius: 12px;
+            margin-top: 16px;
+        }
+
+        .impact-negative {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 12px;
+            border-radius: 12px;
+            margin-top: 16px;
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: white;
+            text-decoration: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <i class="fas fa-chart-line" style="font-size: 48px; color: #667eea;"></i>
+                <h1>What-if Simulation</h1>
+                <p style="color: #64748b;">See how changes in spending affect your savings</p>
+            </div>
+
+            <div class="form-group">
+                <label>Select Category</label>
+                <select id="category">
+                    <option value="Food & Dining">Food & Dining</option>
+                    <option value="Shopping">Shopping</option>
+                    <option value="Transportation">Transportation</option>
+                    <option value="Bills & Utilities">Bills & Utilities</option>
+                    <option value="Others">Others</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Change Percentage</label>
+                <input type="number" id="percentage" placeholder="e.g., -20 for 20% decrease" value="-20">
+                <p style="font-size: 12px; color: #64748b; margin-top: 4px;">Use negative numbers for decrease, positive for increase</p>
+            </div>
+
+            <button onclick="runSimulation()">
+                <i class="fas fa-calculator"></i> Run Simulation
+            </button>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p style="margin-top: 12px;">Calculating...</p>
+            </div>
+
+            <div id="result" style="display: none;"></div>
+        </div>
+        <a href="/" class="back-link">← Back to Dashboard</a>
+    </div>
+
+    <script>
+        async function runSimulation() {
+            const category = document.getElementById('category').value;
+            const percentage = parseFloat(document.getElementById('percentage').value);
+            
+            const loading = document.getElementById('loading');
+            const resultDiv = document.getElementById('result');
+            
+            loading.style.display = 'block';
+            resultDiv.style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/simulate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        category, 
+                        percentage_change: percentage 
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    const result = data.result;
+                    const impactClass = result.impact.savings_change > 0 ? 'impact-positive' : 'impact-negative';
+                    const impactIcon = result.impact.savings_change > 0 ? '📈' : '📉';
+                    
+                    resultDiv.innerHTML = `
+                        <div class="result-card">
+                            <div class="result-title">Simulation Results</div>
+                            <div class="result-row">
+                                <span class="result-label">Current ${category}:</span>
+                                <span class="result-value">₹${result.current.category_expense.toLocaleString()}</span>
+                            </div>
+                            <div class="result-row">
+                                <span class="result-label">New ${category}:</span>
+                                <span class="result-value">₹${result.simulated.category_expense.toLocaleString()}</span>
+                            </div>
+                            <div class="result-row">
+                                <span class="result-label">Current Savings:</span>
+                                <span class="result-value">₹${result.current.savings.toLocaleString()}</span>
+                            </div>
+                            <div class="result-row">
+                                <span class="result-label">New Savings:</span>
+                                <span class="result-value">₹${result.simulated.savings.toLocaleString()}</span>
+                            </div>
+                            <div class="result-row">
+                                <span class="result-label">Savings Rate:</span>
+                                <span class="result-value">${result.current.savings_rate.toFixed(1)}% → ${result.simulated.savings_rate.toFixed(1)}%</span>
+                            </div>
+                            <div class="${impactClass}">
+                                <strong>${impactIcon} Impact: ${result.impact.savings_change > 0 ? 'Increase' : 'Decrease'} of ₹${Math.abs(result.impact.savings_change).toLocaleString()} per month</strong>
+                                <p style="margin-top: 8px;">${result.recommendation}</p>
+                            </div>
+                        </div>
+                    `;
+                    resultDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Simulation failed. Please try again.');
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

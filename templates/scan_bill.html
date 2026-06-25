@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan Bill - XFinance OCR</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            margin-bottom: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            border-radius: 20px;
+            padding: 48px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #fafbfc;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f0f9ff;
+        }
+
+        .upload-area i {
+            font-size: 64px;
+            color: #94a3b8;
+            margin-bottom: 16px;
+        }
+
+        .preview-area {
+            margin-top: 24px;
+            display: none;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+
+        .extracted-data {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .data-label {
+            font-weight: 500;
+            color: #64748b;
+        }
+
+        .data-value {
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: white;
+            text-decoration: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <i class="fas fa-camera" style="font-size: 48px; color: #667eea;"></i>
+                <h1>OCR Bill Scanner</h1>
+                <p style="color: #64748b;">Upload a bill image and extract data automatically</p>
+            </div>
+
+            <div class="upload-area" id="uploadArea">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Click or drag & drop to upload bill image</p>
+                <p style="font-size: 12px; margin-top: 8px;">Supports JPG, PNG, PDF</p>
+                <input type="file" id="fileInput" accept="image/*" style="display: none;">
+            </div>
+
+            <div class="preview-area" id="previewArea">
+                <img id="previewImage" class="preview-image" alt="Preview">
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 12px;">Processing image...</p>
+                </div>
+                <div class="extracted-data" id="extractedData" style="display: none;">
+                    <h3 style="margin-bottom: 16px;">Extracted Details</h3>
+                    <div class="data-row">
+                        <span class="data-label">Merchant:</span>
+                        <span class="data-value" id="merchant">—</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Date:</span>
+                        <span class="data-value" id="date">—</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Amount:</span>
+                        <span class="data-value" id="amount">—</span>
+                    </div>
+                    <button id="addTransactionBtn">Add to Transactions</button>
+                </div>
+            </div>
+        </div>
+        <a href="/" class="back-link">← Back to Dashboard</a>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const previewArea = document.getElementById('previewArea');
+        const previewImage = document.getElementById('previewImage');
+        const loading = document.getElementById('loading');
+        const extractedData = document.getElementById('extractedData');
+        
+        let lastExtracted = null;
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                processFile(e.target.files[0]);
+            }
+        });
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#667eea';
+        });
+
+        uploadArea.addEventListener('dragleave', (e) => {
+            uploadArea.style.borderColor = '#cbd5e1';
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#cbd5e1';
+            if (e.dataTransfer.files.length) {
+                processFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        async function processFile(file) {
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImage.src = e.target.result;
+                previewArea.style.display = 'block';
+                uploadArea.style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+
+            // Process OCR
+            loading.style.display = 'block';
+            extractedData.style.display = 'none';
+
+            const formData = new FormData();
+            formData.append('bill_image', file);
+
+            try {
+                const response = await fetch('/api/scan-bill', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    lastExtracted = data.extracted;
+                    document.getElementById('merchant').textContent = data.extracted.merchant;
+                    document.getElementById('date').textContent = data.extracted.date;
+                    document.getElementById('amount').textContent = `₹${data.extracted.amount.toLocaleString()}`;
+                    extractedData.style.display = 'block';
+                } else {
+                    alert('OCR processing failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to process image');
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        document.getElementById('addTransactionBtn').addEventListener('click', async () => {
+            if (!lastExtracted) return;
+            
+            const transaction = {
+                date: lastExtracted.date,
+                merchant: lastExtracted.merchant,
+                category: 'Food & Dining',
+                amount: lastExtracted.amount
+            };
+
+            try {
+                const response = await fetch('/api/transactions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(transaction)
+                });
+                
+                if (response.ok) {
+                    alert('Transaction added successfully!');
+                    window.location.href = '/';
+                } else {
+                    alert('Error adding transaction');
+                }
+            } catch (error) {
+                alert('Failed to add transaction');
+            }
+        });
+    </script>
+</body>
+</html>

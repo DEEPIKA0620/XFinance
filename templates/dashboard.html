@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>XFinance | AI-Powered Financial Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; background: #f8fafc; color: #1e293b; line-height: 1.5; }
+        .login-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; }
+        .login-box { background: white; border-radius: 30px; padding: 40px; width: 100%; max-width: 450px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        .login-box h2 { font-size: 2rem; margin-bottom: 10px; color: #1e293b; }
+        .login-box p { color: #64748b; margin-bottom: 30px; }
+        .mode-selector { display: flex; gap: 15px; margin-bottom: 25px; }
+        .mode-btn { flex: 1; padding: 15px; border: 2px solid #e2e8f0; background: white; border-radius: 15px; cursor: pointer; transition: all 0.3s; text-align: center; }
+        .mode-btn i { font-size: 2rem; margin-bottom: 8px; display: block; }
+        .mode-btn.selected { border-color: #3b82f6; background: #eff6ff; }
+        .input-group { margin-bottom: 20px; }
+        .input-group input { width: 100%; padding: 12px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem; outline: none; }
+        .input-group input:focus { border-color: #3b82f6; }
+        .login-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: transform 0.2s; }
+        .login-btn:hover { transform: translateY(-2px); }
+        .dashboard-container { display: none; min-height: 100vh; }
+        .sidebar { width: 280px; background: white; padding: 28px 20px; height: 100vh; position: sticky; top: 0; box-shadow: 2px 0 10px rgba(0,0,0,0.05); overflow-y: auto; }
+        .sidebar h2 { color: #3b82f6; font-size: 1.6rem; margin-bottom: 32px; display: flex; align-items: center; gap: 8px; }
+        .sidebar h3 { color: #64748b; font-size: 0.8rem; margin: 20px 0 8px 12px; letter-spacing: 1px; }
+        .sidebar a { display: flex; align-items: center; gap: 12px; color: #475569; margin: 8px 0; text-decoration: none; font-weight: 500; padding: 10px 12px; border-radius: 12px; transition: all 0.2s ease; cursor: pointer; }
+        .sidebar a i { width: 24px; }
+        .sidebar a:hover, .sidebar a.active { background: #f1f5f9; color: #3b82f6; }
+        .logout-btn { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 20px; color: #ef4444 !important; }
+        .logout-btn:hover { background: #fef2f2 !important; }
+        .main { flex: 1; padding: 28px 32px; max-width: calc(100% - 280px); background: #f8fafc; }
+        h1 { font-size: 2rem; font-weight: 600; margin-bottom: 28px; color: #1e293b; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); transition: transform 0.2s; cursor: pointer; }
+        .card:hover { transform: translateY(-4px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .card h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 12px; }
+        .card .amount { font-size: 2rem; font-weight: 700; }
+        .green .amount { color: #22c55e; }
+        .red .amount { color: #ef4444; }
+        .blue .amount { color: #3b82f6; }
+        .purple .amount { color: #a855f7; }
+        .section { margin-top: 32px; }
+        .section h2 { font-size: 1.4rem; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; border-left: 4px solid #3b82f6; padding-left: 16px; color: #1e293b; }
+        .inline-card { background: white; padding: 20px; border-radius: 20px; margin-top: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .auto-pilot-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .auto-pilot-card .recommendation { font-size: 1.2rem; font-weight: 600; margin: 15px 0; }
+        .auto-pilot-buttons { display: flex; gap: 12px; margin: 20px 0; }
+        .auto-pilot-buttons button { flex: 1; padding: 10px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .apply-btn { background: #22c55e; color: white; }
+        .auto-adjust-btn { background: #f59e0b; color: white; }
+        .recent-actions { margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.2); }
+        .action-item { padding: 8px 0; font-size: 0.9rem; display: flex; align-items: center; gap: 8px; }
+        input, select, button { padding: 10px 16px; margin: 6px 6px 6px 0; border-radius: 40px; border: 1px solid #e2e8f0; font-size: 0.9rem; background: white; }
+        button { background: #3b82f6; color: white; border: none; cursor: pointer; transition: 0.2s; }
+        button:hover { background: #2563eb; transform: scale(0.97); }
+        .category-list { margin-top: 15px; }
+        .category-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
+        .alert-item { background: #fef3c7; border-left: 3px solid #f59e0b; padding: 12px; margin-bottom: 10px; border-radius: 12px; }
+        .alert-item.success { background: #dcfce7; border-left-color: #22c55e; }
+        .alert-item.warning { background: #fee2e2; border-left-color: #ef4444; }
+        .alert-item.info { background: #e0f2fe; border-left-color: #3b82f6; }
+        .transaction-table { width: 100%; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        th { background: #f8fafc; font-weight: 600; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+        @media (max-width: 768px) { .sidebar { width: 100%; height: auto; position: relative; } .main { max-width: 100%; padding: 20px; } .dashboard-container { flex-direction: column; } }
+        .small-text { font-size: 0.75rem; color: #64748b; }
+        .delete-btn { background: #ef4444; color: white; padding: 4px 12px; font-size: 0.75rem; border-radius: 20px; }
+        .delete-btn:hover { background: #dc2626; transform: none; }
+        .progress-bar { background: #e2e8f0; height: 6px; border-radius: 3px; margin-top: 5px; margin-bottom: 10px; }
+        .progress-fill { background: #3b82f6; height: 6px; border-radius: 3px; transition: width 0.3s ease; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .mode-badge { background: #3b82f6; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; display: inline-block; margin-bottom: 20px; }
+        .btn-success { background: #22c55e; }
+        .pdf-btn { background: #ef4444; }
+        .pdf-btn:hover { background: #dc2626; }
+        .alerts-container { max-height: 400px; overflow-y: auto; }
+        /* AI Insights Card Styles - Black Text for Better Visibility */
+        .insight-card {
+            background: linear-gradient(135deg, #e0e7ff 0%, #fef9c3 100%);
+            margin-bottom: 15px;
+            border-left: 4px solid #3b82f6 !important;
+        }
+        .insight-card i {
+            font-size: 1.8rem;
+            margin-right: 12px;
+            color: #3b82f6;
+        }
+        .insight-card strong {
+            font-size: 1.1rem;
+            color: #1e293b;
+            display: block;
+            margin-bottom: 8px;
+        }
+        .insight-card p {
+            color: #1e293b;
+            line-height: 1.5;
+            font-size: 0.95rem;
+            margin: 0;
+        }
+        .insight-card .insight-content {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div id="loginPage" class="login-container">
+        <div class="login-box">
+            <h2><i class="fas fa-chart-line"></i> XFinance</h2>
+            <p>Sign in to access your financial dashboard</p>
+            <div class="mode-selector">
+                <div class="mode-btn selected" data-mode="personal"><i class="fas fa-user"></i><strong>Personal Mode</strong><small style="display: block; font-size: 0.7rem;">Manage personal finances</small></div>
+                <div class="mode-btn" data-mode="business"><i class="fas fa-store"></i><strong>Business Mode</strong><small style="display: block; font-size: 0.7rem;">Manage business finances</small></div>
+            </div>
+            <div class="input-group"><input type="text" id="username" placeholder="Username" value="demo"></div>
+            <div class="input-group"><input type="password" id="password" placeholder="Password" value="demo"></div>
+            <button class="login-btn" onclick="login()"><i class="fas fa-sign-in-alt"></i> Login</button>
+            <p class="small-text" style="text-align: center; margin-top: 15px;">Demo: Use any username/password</p>
+        </div>
+    </div>
+    <div id="dashboardContainer" class="dashboard-container"></div>
+    <script>
+        let currentMode = 'personal';
+        let currentUser = null;
+        let personalTransactions = [], financialGoals = [], businessRevenue = [], businessExpenses = [], recentActions = [];
+        let personalAlerts = [], businessAlerts = [];
+        let personalChart = null, businessChart = null;
+
+        function loadData() {
+            const storedPersonal = localStorage.getItem('xfinance_personal_v10');
+            personalTransactions = storedPersonal ? JSON.parse(storedPersonal) : [
+                { id: 1, desc: "Salary", amount: 75000, type: "income", category: "Income", date: new Date().toISOString().split('T')[0] },
+                { id: 2, desc: "Rent", amount: 18000, type: "expense", category: "Bills & Utilities", date: new Date().toISOString().split('T')[0] },
+                { id: 3, desc: "Groceries", amount: 5500, type: "expense", category: "Food & Dining", date: new Date().toISOString().split('T')[0] },
+                { id: 4, desc: "Shopping", amount: 3500, type: "expense", category: "Shopping", date: new Date().toISOString().split('T')[0] },
+                { id: 5, desc: "Transport", amount: 1200, type: "expense", category: "Transportation", date: new Date().toISOString().split('T')[0] }
+            ];
+            const storedGoals = localStorage.getItem('xfinance_goals_v10');
+            financialGoals = storedGoals ? JSON.parse(storedGoals) : [];
+            const storedRevenue = localStorage.getItem('xfinance_revenue_v10');
+            businessRevenue = storedRevenue ? JSON.parse(storedRevenue) : [
+                { id: 1, source: "Product Sales", amount: 125000, date: new Date().toISOString().split('T')[0] },
+                { id: 2, source: "Consulting", amount: 45000, date: new Date().toISOString().split('T')[0] },
+                { id: 3, source: "Subscription", amount: 18000, date: new Date().toISOString().split('T')[0] }
+            ];
+            const storedExpenses = localStorage.getItem('xfinance_business_expenses_v10');
+            businessExpenses = storedExpenses ? JSON.parse(storedExpenses) : [
+                { id: 1, category: "Rent", desc: "Office Rent", amount: 25000, date: new Date().toISOString().split('T')[0] },
+                { id: 2, category: "Salaries", desc: "Staff Salary", amount: 45000, date: new Date().toISOString().split('T')[0] },
+                { id: 3, category: "Utilities", desc: "Electricity", amount: 5000, date: new Date().toISOString().split('T')[0] },
+                { id: 4, category: "Marketing", desc: "Ads", amount: 8000, date: new Date().toISOString().split('T')[0] }
+            ];
+            const storedActions = localStorage.getItem('xfinance_actions_v10');
+            recentActions = storedActions ? JSON.parse(storedActions) : [];
+            const storedPersonalAlerts = localStorage.getItem('xfinance_personal_alerts');
+            personalAlerts = storedPersonalAlerts ? JSON.parse(storedPersonalAlerts) : [];
+            const storedBusinessAlerts = localStorage.getItem('xfinance_business_alerts');
+            businessAlerts = storedBusinessAlerts ? JSON.parse(storedBusinessAlerts) : [];
+            saveAllData();
+        }
+        
+        function saveAllData() {
+            localStorage.setItem('xfinance_personal_v10', JSON.stringify(personalTransactions));
+            localStorage.setItem('xfinance_goals_v10', JSON.stringify(financialGoals));
+            localStorage.setItem('xfinance_revenue_v10', JSON.stringify(businessRevenue));
+            localStorage.setItem('xfinance_business_expenses_v10', JSON.stringify(businessExpenses));
+            localStorage.setItem('xfinance_actions_v10', JSON.stringify(recentActions));
+            localStorage.setItem('xfinance_personal_alerts', JSON.stringify(personalAlerts));
+            localStorage.setItem('xfinance_business_alerts', JSON.stringify(businessAlerts));
+        }
+        
+        function addAction(message) { 
+            recentActions.unshift({ id: Date.now(), message, date: new Date().toLocaleString() }); 
+            if(recentActions.length > 15) recentActions.pop(); 
+            saveAllData(); 
+        }
+        
+        function addAlert(type, title, message, category) {
+            const alert = { id: Date.now(), type, title, message, category, date: new Date().toLocaleString(), read: false };
+            if(currentMode === 'personal') {
+                personalAlerts.unshift(alert);
+                if(personalAlerts.length > 20) personalAlerts.pop();
+                localStorage.setItem('xfinance_personal_alerts', JSON.stringify(personalAlerts));
+            } else {
+                businessAlerts.unshift(alert);
+                if(businessAlerts.length > 20) businessAlerts.pop();
+                localStorage.setItem('xfinance_business_alerts', JSON.stringify(businessAlerts));
+            }
+        }
+        
+        function checkPersonalAlerts() {
+            const { income, expense, savings, savingsRate } = getPersonalTotals();
+            const categories = getCategoryBreakdown();
+            if(savings < 0) addAlert('danger', '⚠️ Critical Overspending', `Expenses exceed income by ₹${Math.abs(savings).toLocaleString()}. Immediate action required!`, 'overspending');
+            else if(savingsRate < 10) addAlert('warning', '⚠️ Low Savings Alert', `Saving only ${savingsRate.toFixed(1)}% of income. Aim for 20%+.`, 'savings');
+            for(let [cat, amt] of Object.entries(categories)) {
+                if(cat !== 'Income' && amt > expense * 0.35 && expense > 0) {
+                    addAlert('info', `📊 High ${cat} Spending`, `${cat}: ₹${amt.toLocaleString()} (${((amt/expense)*100).toFixed(1)}% of expenses). Consider budgeting.`, cat);
+                    break;
+                }
+            }
+        }
+        
+        function checkBusinessAlerts() {
+            const { totalRevenue, totalExpenses, profit, margin } = getBusinessTotals();
+            const categories = getBusinessExpenseByCategory();
+            if(profit < 0) addAlert('danger', '🚨 Business Operating at Loss', `Current loss: ₹${Math.abs(profit).toLocaleString()}. Immediate cost reduction needed!`, 'loss');
+            else if(margin < 10) addAlert('warning', '📉 Low Profit Margin', `Margin: ${margin.toFixed(1)}%. Target 20%+.`, 'margin');
+            for(let [cat, amt] of Object.entries(categories)) {
+                if(amt > totalExpenses * 0.4 && totalExpenses > 0) {
+                    addAlert('danger', `⚠️ High ${cat} Expenses`, `${cat}: ₹${amt.toLocaleString()} (${((amt/totalExpenses)*100).toFixed(1)}% of costs). Review this category.`, cat);
+                    break;
+                }
+            }
+        }
+        
+        function getPersonalAIInsights() {
+            const { income, expense, savings, savingsRate } = getPersonalTotals();
+            const categories = getCategoryBreakdown();
+            let topCategory = null, topAmount = 0;
+            for(let cat in categories) if(cat !== 'Income' && categories[cat] > topAmount) { topAmount = categories[cat]; topCategory = cat; }
+            const insights = [];
+            if(savings < 0) insights.push({ icon: 'fa-chart-line', title: 'Spending Analysis', description: `Your spending exceeds income by ₹${Math.abs(savings).toLocaleString()}. ${topCategory || 'Your expenses'} at ₹${topAmount.toLocaleString()} is the main driver. Reducing this by 20% would bring you back to balance.` });
+            else insights.push({ icon: 'fa-piggy-bank', title: 'Savings Potential', description: `You save ${savingsRate.toFixed(1)}% of your income. If you increase this by just 5%, you could accumulate an additional ₹${Math.ceil(income * 0.05).toLocaleString()} annually.` });
+            if(topCategory && topAmount > 0 && expense > 0) insights.push({ icon: 'fa-chart-pie', title: `Top Expense: ${topCategory}`, description: `${topCategory} accounts for ${((topAmount/expense)*100).toFixed(1)}% of your total expenses at ₹${topAmount.toLocaleString()}. Setting a monthly budget of ₹${Math.ceil(topAmount * 0.85).toLocaleString()} for this category could help optimize your spending.` });
+            insights.push({ icon: 'fa-chart-simple', title: 'Financial Health Score', description: `Based on your savings rate of ${savingsRate.toFixed(1)}%, your financial health is rated as ${savingsRate >= 20 ? 'Excellent' : savingsRate >= 10 ? 'Good' : savingsRate >= 0 ? 'Fair' : 'Critical'}. ${savingsRate < 10 ? 'Focus on reducing discretionary spending to build a stronger financial foundation.' : 'Keep up the great work! Consider investing your savings for long-term growth.'}` });
+            return insights;
+        }
+        
+        function getBusinessAIInsights() {
+            const { totalRevenue, totalExpenses, profit, margin } = getBusinessTotals();
+            const categories = getBusinessExpenseByCategory();
+            let topExpense = null, topAmount = 0;
+            for(let cat in categories) if(categories[cat] > topAmount) { topAmount = categories[cat]; topExpense = cat; }
+            const insights = [];
+            if(profit < 0) insights.push({ icon: 'fa-chart-line', title: 'Loss Analysis', description: `Your business is operating at a loss of ₹${Math.abs(profit).toLocaleString()}. ${topExpense} expenses (₹${topAmount.toLocaleString()}) represent the largest cost driver. Reducing ${topExpense} by 25% would significantly improve your bottom line.` });
+            else insights.push({ icon: 'fa-chart-line', title: 'Profitability Analysis', description: `Your profit margin is ${margin.toFixed(1)}%. For every ₹100 in revenue, you keep ₹${margin.toFixed(1)} as profit. The industry benchmark is 20-30%. ${margin < 20 ? 'Consider cost optimization strategies or value-based pricing to improve margins.' : 'You are performing above industry average!'}` });
+            if(topExpense && topAmount > 0 && totalExpenses > 0) insights.push({ icon: 'fa-chart-pie', title: `Top Cost Driver: ${topExpense}`, description: `${topExpense} accounts for ${((topAmount/totalExpenses)*100).toFixed(1)}% of total expenses. ${topExpense === 'Salaries' ? 'Review staffing efficiency and consider performance-based incentives.' : topExpense === 'Rent' ? 'Consider renegotiating lease terms or exploring remote work options.' : 'Analyze this expense category for potential savings opportunities.'}` });
+            insights.push({ icon: 'fa-chart-simple', title: 'Business Health Score', description: `Your business health score is ${margin >= 25 ? 'Excellent' : margin >= 15 ? 'Good' : margin >= 5 ? 'Fair' : 'Critical'}. ${margin < 15 ? 'Key areas to focus: reduce overhead costs, increase sales volume through marketing, or adjust pricing strategy.' : 'Maintain your current trajectory. Consider reinvesting profits into growth initiatives for sustainable expansion.'}` });
+            return insights;
+        }
+        
+        function getPersonalTotals() { let i=0,e=0; personalTransactions.forEach(t=>{if(t.type==='income') i+=t.amount; else e+=t.amount;}); const s=i-e, r=i>0?(s/i)*100:0; return {income:i, expense:e, savings:s, savingsRate:r}; }
+        function getCategoryBreakdown() { const c={"Food & Dining":0,"Shopping":0,"Transportation":0,"Bills & Utilities":0,"Entertainment":0,"Healthcare":0,"Others":0,"Income":0}; personalTransactions.forEach(t=>{if(t.type==='expense'){if(c[t.category]!==undefined)c[t.category]+=t.amount; else c["Others"]+=t.amount;} else if(t.type==='income')c["Income"]+=t.amount;}); return c; }
+        function getBusinessTotals() { const r=businessRevenue.reduce((s,it)=>s+it.amount,0), e=businessExpenses.reduce((s,it)=>s+it.amount,0), p=r-e, m=r>0?(p/r)*100:0; return {totalRevenue:r, totalExpenses:e, profit:p, margin:m}; }
+        function getBusinessExpenseByCategory() { const c={Rent:0,Salaries:0,Marketing:0,Utilities:0,Inventory:0,Others:0}; businessExpenses.forEach(e=>{if(c[e.category]!==undefined)c[e.category]+=e.amount; else c.Others+=e.amount;}); return c; }
+        function getPersonalAutoPilotRecommendation() { const {income,expense,savings,savingsRate}=getPersonalTotals(); const cats=getCategoryBreakdown(); let top=null,topAmt=0; for(let cat in cats)if(cat!=='Income'&&cats[cat]>topAmt){topAmt=cats[cat];top=cat;} if(savings<0)return{issue:"Critical Overspending",explanation:`Expenses exceed income by ₹${Math.abs(savings).toLocaleString()}.`,recommendation:`Reduce expenses by ₹${Math.ceil(Math.abs(savings)/2).toLocaleString()}.`,action:`Reduce ${top||'expenses'} by ₹${Math.ceil(topAmt*0.3).toLocaleString()}`}; if(savingsRate<10)return{issue:"Low Savings Rate",explanation:`Saving only ${savingsRate.toFixed(1)}% of income.`,recommendation:`Increase savings by cutting non-essentials.`,action:`Cut ${top||'misc'} expenses by ₹${Math.ceil(topAmt*0.2).toLocaleString()}`}; return{issue:"Good Financial Health",explanation:`Savings rate ${savingsRate.toFixed(1)}%.`,recommendation:`Boost savings by 5%.`,action:`Increase savings by ₹${Math.ceil(income*0.05).toLocaleString()}`};}
+        function getBusinessAutoPilotRecommendation() { const {totalRevenue,totalExpenses,profit,margin}=getBusinessTotals(); const cats=getBusinessExpenseByCategory(); let top=null,topAmt=0; for(let cat in cats)if(cats[cat]>topAmt){topAmt=cats[cat];top=cat;} if(profit<0)return{issue:"Operating at Loss",explanation:`Loss: ₹${Math.abs(profit).toLocaleString()}.`,recommendation:`Reduce ${top} costs by 30%.`,action:`Cut ${top} by ₹${Math.ceil(topAmt*0.3).toLocaleString()}`}; if(margin<15)return{issue:"Low Profit Margin",explanation:`Margin ${margin.toFixed(1)}%.`,recommendation:`Optimize ${top} costs.`,action:`Reduce ${top} by ₹${Math.ceil(topAmt*0.15).toLocaleString()}`}; return{issue:"Healthy Operations",explanation:`Margin ${margin.toFixed(1)}%.`,recommendation:`Expand marketing.`,action:`Increase marketing by ₹${Math.ceil(totalRevenue*0.05).toLocaleString()}`};}
+        function applySuggestion() { const rec=currentMode==='personal'?getPersonalAutoPilotRecommendation():getBusinessAutoPilotRecommendation(); addAction(`Applied: ${rec.action}`); alert(`✅ Applied: ${rec.action}`); refreshDashboard(); }
+        function autoAdjustBudget() { const rec=currentMode==='personal'?getPersonalAutoPilotRecommendation():getBusinessAutoPilotRecommendation(); addAction(`Auto-adjusted: ${rec.action}`); alert(`🔄 Auto-adjusted: ${rec.action}`); refreshDashboard(); }
+        function generatePDFReport() { const {jsPDF}=window.jspdf; const doc=new jsPDF(); const {income,expense,savings,savingsRate}=getPersonalTotals(); const cats=getCategoryBreakdown(); doc.setFontSize(20); doc.setTextColor(59,130,246); doc.text("XFinance - Financial Report",20,20); doc.setFontSize(12); doc.setTextColor(0,0,0); doc.text("Generated: "+new Date().toLocaleString(),20,30); doc.text("Mode: Personal Finance",20,38); doc.setFontSize(14); doc.text("Financial Summary",20,50); doc.setFontSize(11); doc.text("Total Income: ₹"+income.toLocaleString(),20,60); doc.text("Total Expenses: ₹"+expense.toLocaleString(),20,68); doc.text("Net Savings: ₹"+savings.toLocaleString(),20,76); doc.text("Savings Rate: "+savingsRate.toFixed(1)+"%",20,84); doc.text("Category Breakdown",20,100); let y=110; for(let [cat,amt] of Object.entries(cats)){if(amt>0&&cat!=='Income'){doc.text(cat+": ₹"+amt.toLocaleString(),25,y); y+=8; if(y>270)break;}} doc.save("xfinance_report_"+Date.now()+".pdf"); addAction("Generated PDF report"); }
+        function generateBusinessPDFReport() { const {jsPDF}=window.jspdf; const doc=new jsPDF(); const {totalRevenue,totalExpenses,profit,margin}=getBusinessTotals(); const cats=getBusinessExpenseByCategory(); doc.setFontSize(20); doc.setTextColor(59,130,246); doc.text("XFinance - Business Report",20,20); doc.setFontSize(12); doc.setTextColor(0,0,0); doc.text("Generated: "+new Date().toLocaleString(),20,30); doc.text("Mode: Business Finance",20,38); doc.setFontSize(14); doc.text("Profit & Loss Summary",20,50); doc.setFontSize(11); doc.text("Total Revenue: ₹"+totalRevenue.toLocaleString(),20,60); doc.text("Total Expenses: ₹"+totalExpenses.toLocaleString(),20,68); doc.text("Net Profit: ₹"+profit.toLocaleString(),20,76); doc.text("Profit Margin: "+margin.toFixed(1)+"%",20,84); doc.text("Expense Breakdown",20,100); let y=110; for(let [cat,amt] of Object.entries(cats)){if(amt>0){doc.text(cat+": ₹"+amt.toLocaleString(),25,y); y+=8; if(y>270)break;}} doc.save("xfinance_business_report_"+Date.now()+".pdf"); addAction("Generated Business PDF report"); }
+        
+        function login() { const username=document.getElementById('username').value; const selectedMode=document.querySelector('.mode-btn.selected'); if(!selectedMode){alert('Select mode');return;} currentMode=selectedMode.getAttribute('data-mode'); currentUser=username; loadData(); document.getElementById('loginPage').style.display='none'; renderDashboard(); }
+        function logout() { document.getElementById('loginPage').style.display='flex'; document.getElementById('dashboardContainer').innerHTML=''; document.getElementById('dashboardContainer').style.display='none'; currentUser=null; }
+        
+        function renderDashboard() {
+            const container=document.getElementById('dashboardContainer'); container.style.display='flex';
+            container.innerHTML=`<div class="sidebar"><h2><i class="fas fa-chart-line"></i> XFinance</h2><div class="mode-badge"><i class="fas ${currentMode==='personal'?'fa-user':'fa-store'}"></i> ${currentMode==='personal'?'Personal Mode':'Business Mode'}</div><h3>MAIN</h3><a class="nav-link active" data-tab="dashboard"><i class="fas fa-home"></i> Dashboard</a><a class="nav-link" data-tab="transactions"><i class="fas fa-list"></i> Transactions</a><a class="nav-link" data-tab="simulation"><i class="fas fa-chart-simple"></i> What-if Simulation</a><a class="nav-link" data-tab="goals"><i class="fas fa-bullseye"></i> Goal Planning</a><a class="nav-link" data-tab="ocr"><i class="fas fa-camera"></i> OCR Scan</a><a class="nav-link" data-tab="reports"><i class="fas fa-file-alt"></i> Reports</a><a class="nav-link" data-tab="alerts"><i class="fas fa-bell"></i> Alerts & Reminders</a><a class="nav-link" data-tab="insights"><i class="fas fa-brain"></i> AI Insights</a>${currentMode==='business'?`<h3>BUSINESS</h3><a class="nav-link" data-tab="revenue"><i class="fas fa-chart-line"></i> Revenue Tracking</a><a class="nav-link" data-tab="expense-mgmt"><i class="fas fa-chart-pie"></i> Expense Management</a><a class="nav-link" data-tab="profit-loss"><i class="fas fa-chart-bar"></i> P&L Analysis</a><a class="nav-link" data-tab="forecasting"><i class="fas fa-chart-line"></i> Forecasting</a><a class="nav-link" data-tab="break-even"><i class="fas fa-balance-scale"></i> Break-even</a>`:''}<a class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</a></div><div class="main"><div id="dashboard" class="tab-content active"></div><div id="transactions" class="tab-content"></div><div id="simulation" class="tab-content"></div><div id="goals" class="tab-content"></div><div id="ocr" class="tab-content"></div><div id="reports" class="tab-content"></div><div id="alerts" class="tab-content"></div><div id="insights" class="tab-content"></div>${currentMode==='business'?`<div id="revenue" class="tab-content"></div><div id="expense-mgmt" class="tab-content"></div><div id="profit-loss" class="tab-content"></div><div id="forecasting" class="tab-content"></div><div id="break-even" class="tab-content"></div>`:''}</div>`;
+            refreshDashboard(); setupNavigation();
+        }
+        
+        function refreshDashboard() { 
+            if(currentMode==='personal'){ checkPersonalAlerts(); renderPersonalDashboard(); renderPersonalTransactions(); renderPersonalSimulation(); renderPersonalGoals(); renderPersonalOCR(); renderPersonalReports(); renderAlerts(); renderInsights(); } 
+            else{ checkBusinessAlerts(); renderBusinessDashboard(); renderBusinessTransactions(); renderBusinessSimulation(); renderBusinessGoals(); renderBusinessOCR(); renderBusinessReports(); renderRevenueTracking(); renderExpenseManagement(); renderProfitLoss(); renderForecasting(); renderBreakEven(); renderAlerts(); renderInsights(); } 
+        }
+        
+        function renderAlerts() { const alerts=currentMode==='personal'?personalAlerts:businessAlerts; document.getElementById('alerts').innerHTML=`<h1><i class="fas fa-bell"></i> Alerts & Reminders</h1><div class="inline-card"><div class="alerts-container">${alerts.length===0?'<p class="small-text">✅ No alerts. Great job!</p>':alerts.slice(0,10).map(a=>`<div class="alert-item ${a.type==='danger'?'warning':a.type==='warning'?'warning':'info'}"><strong><i class="fas ${a.type==='danger'?'fa-exclamation-triangle':a.type==='warning'?'fa-chart-line':'fa-bell'}"></i> ${a.title}</strong><p>${a.message}</p><small class="small-text">${a.date}</small></div>`).join('')}</div><button onclick="clearAlerts()" class="delete-btn" style="margin-top:15px;">Clear All</button></div>`; }
+        
+        function renderInsights() { 
+            const insights=currentMode==='personal'?getPersonalAIInsights():getBusinessAIInsights(); 
+            document.getElementById('insights').innerHTML=`<h1><i class="fas fa-brain"></i> AI Financial Insights</h1>
+                <div class="inline-card">
+                    <p class="small-text" style="margin-bottom:15px; color:#64748b;">🤖 Explainable AI analysis based on your real financial data</p>
+                    ${insights.map(i => `
+                        <div class="alert-item info insight-card">
+                            <div class="insight-content">
+                                <i class="fas ${i.icon}"></i>
+                                <div style="flex:1;">
+                                    <strong>${i.title}</strong>
+                                    <p>${i.description}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>`;
+        }
+        
+        // All existing render functions remain exactly the same
+        function renderPersonalDashboard() { const {income,expense,savings,savingsRate}=getPersonalTotals(); const cats=getCategoryBreakdown(); const rec=getPersonalAutoPilotRecommendation(); const html=`<h1><i class="fas fa-user"></i> Personal Dashboard</h1><div class="stats-grid"><div class="card green"><h3>Total Income</h3><div class="amount">₹${income.toLocaleString()}</div></div><div class="card red"><h3>Total Expenses</h3><div class="amount">₹${expense.toLocaleString()}</div></div><div class="card blue"><h3>Net Savings</h3><div class="amount">₹${savings.toLocaleString()}</div></div><div class="card purple"><h3>Savings Rate</h3><div class="amount">${savingsRate.toFixed(1)}%</div></div></div><div class="section"><h2><i class="fas fa-robot"></i> AI Financial Auto-Pilot</h2><div class="inline-card auto-pilot-card"><div><strong>⚠️ ${rec.issue}</strong><br><small>${rec.explanation}</small></div><div class="recommendation"><i class="fas fa-lightbulb"></i> ${rec.recommendation}</div><div class="auto-pilot-buttons"><button class="apply-btn" onclick="applySuggestion()">Apply Suggestion</button><button class="auto-adjust-btn" onclick="autoAdjustBudget()">Auto Adjust</button></div><div class="recent-actions"><strong>Recent Actions:</strong> ${recentActions.slice(0,5).map(a=>`<div class="action-item"><i class="fas fa-check-circle"></i> ${a.message}</div>`).join('')||'<div>No actions</div>'}</div></div></div><div class="section"><h2><i class="fas fa-chart-pie"></i> Category Analysis</h2><div class="inline-card"><canvas id="expenseChart" style="max-height:280px"></canvas><div class="category-list">${Object.entries(cats).filter(([_,a])=>a>0&&_!=='Income').map(([c,a])=>`<div class="category-item"><span>${c}</span><span>₹${a.toLocaleString()}</span></div>`).join('')}</div></div></div><div class="section"><h2><i class="fas fa-plus-circle"></i> Add Transaction</h2><div class="inline-card"><form id="addTransactionForm"><input type="text" id="desc" placeholder="Description" required><input type="number" id="amount" placeholder="Amount (₹)" required><select id="category"><option>Food & Dining</option><option>Shopping</option><option>Transportation</option><option>Bills & Utilities</option><option>Entertainment</option><option>Healthcare</option><option>Income</option><option>Others</option></select><select id="type"><option value="expense">Expense</option><option value="income">Income</option></select><button type="submit">Add Transaction</button></form></div></div>`; document.getElementById('dashboard').innerHTML=html; const ctx=document.getElementById('expenseChart')?.getContext('2d'); if(ctx){ const vals=Object.entries(cats).filter(([k,v])=>v>0&&k!=='Income').map(([_,v])=>v); const labels=Object.entries(cats).filter(([k,v])=>v>0&&k!=='Income').map(([k,_])=>k); if(personalChart)personalChart.destroy(); personalChart=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data:vals,backgroundColor:['#22c55e','#3b82f6','#f59e0b','#a855f7','#ef4444','#06b6d4','#8b5cf6']}]},options:{responsive:true}}); } document.getElementById('addTransactionForm')?.addEventListener('submit',(e)=>{ e.preventDefault(); personalTransactions.push({id:Date.now(),desc:document.getElementById('desc').value,amount:parseFloat(document.getElementById('amount').value),category:document.getElementById('category').value,type:document.getElementById('type').value,date:new Date().toISOString().split('T')[0]}); saveAllData(); addAction(`Added ${document.getElementById('type').value}: ₹${document.getElementById('amount').value}`); refreshDashboard(); e.target.reset();}); }
+        function renderPersonalTransactions() { const html=`<h1>Transaction History</h1><div class="inline-card"><div class="flex-between"><input type="text" id="searchInput" placeholder="Search..." style="flex:1;margin-right:10px;"><select id="categoryFilter"></select></div><div id="transactionsList"></div></div>`; document.getElementById('transactions').innerHTML=html; const cats=[...new Set(personalTransactions.map(t=>t.category))]; document.getElementById('categoryFilter').innerHTML='<option value="all">All Categories</option>'+cats.map(c=>`<option value="${c}">${c}</option>`).join(''); const update=()=>{ const s=document.getElementById('searchInput').value.toLowerCase(); const f=document.getElementById('categoryFilter').value; const filtered=personalTransactions.filter(t=>t.desc.toLowerCase().includes(s)&&(f==='all'||t.category===f)).sort((a,b)=>new Date(b.date)-new Date(a.date)); document.getElementById('transactionsList').innerHTML=`<table><thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Amount</th><th>Action</th></tr></thead><tbody>${filtered.map(t=>`<tr><td>${t.date}</td><td>${t.desc}</td><td>${t.category}</td><td style="color:${t.type==='income'?'#22c55e':'#ef4444'}">${t.type==='income'?'+':'-'}₹${t.amount.toLocaleString()}</td><td><button onclick="deleteTransaction(${t.id})" class="delete-btn">Delete</button></td></tr>`).join('')}</tbody></table>`;}; document.getElementById('searchInput').addEventListener('input',update); document.getElementById('categoryFilter').addEventListener('change',update); update(); }
+        function renderPersonalSimulation() { document.getElementById('simulation').innerHTML=`<h1>What-if Simulation</h1><div class="inline-card"><form id="simulateForm"><input type="number" id="simAmount" placeholder="Amount (₹)" required><select id="simType"><option value="reduce_expense">Reduce Monthly Expenses</option><option value="increase_income">Increase Monthly Income</option></select><button type="submit">Run Simulation</button></form><div id="simResult"></div></div>`; document.getElementById('simulateForm')?.addEventListener('submit',(e)=>{ e.preventDefault(); const amt=parseFloat(document.getElementById('simAmount').value); const type=document.getElementById('simType').value; const {income,expense,savings}=getPersonalTotals(); let ni=income,ne=expense; if(type==='reduce_expense') ne=Math.max(0,expense-amt); else ni=income+amt; const ns=ni-ne; document.getElementById('simResult').innerHTML=`<div class="alert-item success"><strong>Result</strong><br>Current: ₹${savings.toLocaleString()}<br>Projected: ₹${ns.toLocaleString()}<br>Impact: ${(ns-savings)>=0?'+':''}₹${(ns-savings).toLocaleString()}</div>`;}); }
+        function renderPersonalGoals() { document.getElementById('goals').innerHTML=`<h1>Goal Planning</h1><div class="inline-card"><form id="goalForm"><input type="text" id="goalName" placeholder="Goal Name" required><input type="number" id="goalAmount" placeholder="Target (₹)" required><input type="number" id="goalMonths" placeholder="Months" required><button type="submit">Set Goal</button></form><div id="goalsList"></div></div>`; const update=()=>{ const {savings}=getPersonalTotals(); document.getElementById('goalsList').innerHTML=financialGoals.map(g=>{ const monthly=g.amount/g.months; const prog=Math.min(100,(savings/monthly)*100); return `<div><strong>${g.name}</strong>: ₹${g.amount.toLocaleString()} in ${g.months} months</div><div class="progress-bar"><div class="progress-fill" style="width:${prog}%"></div></div><div>Need ₹${monthly.toLocaleString()}/month</div><button onclick="deleteGoal(${g.id})" class="delete-btn">Delete</button>`; }).join('')||'<p>No goals set</p>';}; document.getElementById('goalForm')?.addEventListener('submit',(e)=>{ e.preventDefault(); financialGoals.push({id:Date.now(),name:document.getElementById('goalName').value,amount:parseFloat(document.getElementById('goalAmount').value),months:parseInt(document.getElementById('goalMonths').value)}); saveAllData(); update(); e.target.reset();}); update(); }
+        function renderPersonalOCR() { document.getElementById('ocr').innerHTML=`<h1>OCR Bill Scan</h1><div class="inline-card"><form id="ocrForm"><input type="file" accept="image/*" required><button type="submit">Scan Bill</button></form><div id="ocrResult"></div></div>`; document.getElementById('ocrForm')?.addEventListener('submit',(e)=>{ e.preventDefault(); document.getElementById('ocrResult').innerHTML='<p>Processing...</p>'; setTimeout(()=>{ const amt=Math.floor(Math.random()*(5000-200+1)+200); const merchant=["Starbucks","Amazon","Walmart","Local Mart"][Math.floor(Math.random()*4)]; document.getElementById('ocrResult').innerHTML=`<div class="alert-item success"><strong>Bill Extracted!</strong><br>Merchant: ${merchant}<br>Amount: ₹${amt}<br><button onclick="addOCRTransaction('${merchant}',${amt})" class="btn-success">Add Expense</button></div>`; },1000);}); }
+        function renderPersonalReports() { document.getElementById('reports').innerHTML=`<h1>Generate Reports</h1><div class="inline-card"><button id="downloadPDFReportBtn" class="pdf-btn" style="width:100%"><i class="fas fa-file-pdf"></i> Download PDF Report</button></div>`; document.getElementById('downloadPDFReportBtn')?.addEventListener('click',()=>generatePDFReport()); }
+        function renderBusinessDashboard() { const {totalRevenue,totalExpenses,profit,margin}=getBusinessTotals(); const rec=getBusinessAutoPilotRecommendation(); document.getElementById('dashboard').innerHTML=`<h1><i class="fas fa-store"></i> Business Dashboard</h1><div class="stats-grid"><div class="card green"><h3>Revenue</h3><div class="amount">₹${totalRevenue.toLocaleString()}</div></div><div class="card red"><h3>Expenses</h3><div class="amount">₹${totalExpenses.toLocaleString()}</div></div><div class="card blue"><h3>Profit</h3><div class="amount">₹${profit.toLocaleString()}</div></div><div class="card purple"><h3>Margin</h3><div class="amount">${margin.toFixed(1)}%</div></div></div><div class="section"><h2><i class="fas fa-robot"></i> AI Business Auto-Pilot</h2><div class="inline-card auto-pilot-card"><div><strong>${rec.issue}</strong><br><small>${rec.explanation}</small></div><div class="recommendation"><i class="fas fa-lightbulb"></i> ${rec.recommendation}</div><div class="auto-pilot-buttons"><button class="apply-btn" onclick="applySuggestion()">Apply</button><button class="auto-adjust-btn" onclick="autoAdjustBudget()">Auto Adjust</button></div><div class="recent-actions"><strong>Recent:</strong> ${recentActions.slice(0,5).map(a=>`<div>✓ ${a.message}</div>`).join('')||'<div>None</div>'}</div></div></div>`; }
+        function renderBusinessTransactions() { document.getElementById('transactions').innerHTML=`<h1>Business Transactions</h1><div class="inline-card"><p>Use Revenue Tracking & Expense Management tabs below.</p><div class="stats-grid"><div class="card green"><h3>Revenue Entries</h3><div class="amount">${businessRevenue.length}</div></div><div class="card red"><h3>Expense Entries</h3><div class="amount">${businessExpenses.length}</div></div></div></div>`; }
+        function renderBusinessSimulation() { document.getElementById('simulation').innerHTML=`<h1>Business Simulation</h1><div class="inline-card"><form id="bizSimForm"><input type="number" id="bizSimAmount" placeholder="Amount (₹)" required><select id="bizSimType"><option value="increase_revenue">Increase Revenue</option><option value="reduce_cost">Reduce Costs</option></select><button type="submit">Run</button></form><div id="bizSimResult"></div></div>`; document.getElementById('bizSimForm')?.addEventListener('submit',(e)=>{ e.preventDefault(); const amt=parseFloat(document.getElementById('bizSimAmount').value); const type=document.getElementById('bizSimType').value; const {totalRevenue,totalExpenses,profit}=getBusinessTotals(); let nr=totalRevenue,ne=totalExpenses; if(type==='increase_revenue') nr+=amt; else ne=Math.max(0,totalExpenses-amt); const np=nr-ne; document.getElementById('bizSimResult').innerHTML=`<div class="alert-item success"><strong>Result</strong><br>Current Profit: ₹${profit.toLocaleString()}<br>Projected: ₹${np.toLocaleString()}<br>Impact: ${(np-profit)>=0?'+':''}₹${(np-profit).toLocaleString()}</div>`;}); }
+        function renderBusinessGoals() { document.getElementById('goals').innerHTML=`<h1>Business Goals</h1><div class="inline-card"><form id="bizGoalForm"><input type="text" id="bizGoalName" placeholder="Goal Name" required><input type="number" id="bizGoalTarget" placeholder="Target Revenue (₹)" required><input type="number" id="bizGoalMonths" placeholder="Months" required><button type="submit">Set Goal</button></form><div id="bizGoalsList"></div></div>`; let bizGoals=JSON.parse(localStorage.getItem('biz_goals_v10')||'[]'); const update=()=>{ const {totalRevenue}=getBusinessTotals(); document.getElementById('bizGoalsList').innerHTML=bizGoals.map(g=>{ const monthly=g.target/g.months; const prog=Math.min(100,(totalRevenue/monthly)*100); return `<div><strong>${g.name}</strong>: ₹${g.target.toLocaleString()} in ${g.months} months</div><div class="progress-bar"><div class="progress-fill" style="width:${prog}%"></div></div><div>Need ₹${monthly.toLocaleString()}/month</div><button onclick="deleteBizGoal(${g.id})" class="delete-btn">Delete</button>`; }).join('')||'<p>No goals set</p>';}; document.getElementById('bizGoalForm')?.addEventListener('submit',(e)=>{ e.preventDefault(); bizGoals.push({id:Date.now(),name:document.getElementById('bizGoalName').value,target:parseFloat(document.getElementById('bizGoalTarget').value),months:parseInt(document.getElementById('bizGoalMonths').value)}); localStorage.setItem('biz_goals_v10',JSON.stringify(bizGoals)); update(); e.target.reset();}); update(); window.deleteBizGoal=(id)=>{ bizGoals=bizGoals.filter(g=>g.id!==id); localStorage.setItem('biz_goals_v10',JSON.stringify(bizGoals)); renderBusinessGoals();}; }
+        function renderBusinessOCR() { document.getElementById('ocr').innerHTML=`<h1>Business Invoice Scanner</h1><div class="inline-card"><form id="bizOcrForm"><input type="file" accept="image/*" required><button type="submit">Scan Invoice</button></form><div id="bizOcrResult"></div></div>`; document.getElementById('bizOcrForm')?.addEventListener('submit',(e)=>{ e.preventDefault(); document.getElementById('bizOcrResult').innerHTML='<p>Processing...</p>'; setTimeout(()=>{ const amt=Math.floor(Math.random()*(50000-1000+1)+1000); const vendor=["Office Depot","Tech Supplies","Marketing Agency"][Math.floor(Math.random()*3)]; document.getElementById('bizOcrResult').innerHTML=`<div class="alert-item success"><strong>Invoice Extracted!</strong><br>Vendor: ${vendor}<br>Amount: ₹${amt}<br><button onclick="addBusinessExpenseOCR('${vendor}',${amt})" class="btn-success">Add Expense</button></div>`; },1000);}); }
+        function renderBusinessReports() { document.getElementById('reports').innerHTML=`<h1>Business Reports</h1><div class="inline-card"><button id="downloadBizPDFBtn" class="pdf-btn" style="width:100%"><i class="fas fa-file-pdf"></i> Download P&L PDF</button></div>`; document.getElementById('downloadBizPDFBtn')?.addEventListener('click',()=>generateBusinessPDFReport()); }
+        function renderRevenueTracking() { document.getElementById('revenue').innerHTML=`<h1>Revenue Tracking</h1><div class="inline-card"><form id="addRevenueForm"><input type="text" id="revSource" placeholder="Source" required><input type="number" id="revAmount" placeholder="Amount (₹)" required><button type="submit">Add Revenue</button></form><div class="transaction-table"><table><thead><tr><th>Source</th><th>Amount</th><th>Date</th><th>Action</th></tr></thead><tbody id="revenueTable"></tbody></table></div></div>`; const update=()=>{ const tbody=document.getElementById('revenueTable'); if(tbody) tbody.innerHTML=businessRevenue.map(r=>`<tr><td>${r.source}</td><td>₹${r.amount.toLocaleString()}</td><td>${r.date}</td><td><button onclick="deleteRevenue(${r.id})" class="delete-btn">Delete</button></td></tr>`).join('')||'<tr><td colspan="4">No revenue entries</td></tr>';}; document.getElementById('addRevenueForm')?.addEventListener('submit',(e)=>{ e.preventDefault(); businessRevenue.push({id:Date.now(),source:document.getElementById('revSource').value,amount:parseFloat(document.getElementById('revAmount').value),date:new Date().toISOString().split('T')[0]}); saveAllData(); addAction(`Added revenue: ₹${document.getElementById('revAmount').value}`); update(); refreshDashboard(); e.target.reset();}); update(); }
+        function renderExpenseManagement() { document.getElementById('expense-mgmt').innerHTML=`<h1>Expense Management</h1><div class="inline-card"><form id="addBizExpenseForm"><input type="text" id="expCategory" placeholder="Category" required><input type="text" id="expDesc" placeholder="Description" required><input type="number" id="expAmount" placeholder="Amount (₹)" required><button type="submit">Add Expense</button></form><div class="transaction-table"><table><thead><tr><th>Category</th><th>Description</th><th>Amount</th><th>Date</th><th>Action</th></tr></thead><tbody id="expenseTable"></tbody></table></div><canvas id="expenseBizChart" style="max-height:250px; margin-top:20px"></canvas></div>`; const update=()=>{ const tbody=document.getElementById('expenseTable'); if(tbody) tbody.innerHTML=businessExpenses.map(e=>`<tr><td>${e.category}</td><td>${e.desc}</td><td>₹${e.amount.toLocaleString()}</td><td>${e.date}</td><td><button onclick="deleteBizExpense(${e.id})" class="delete-btn">Delete</button></td></tr>`).join('')||'<tr><td colspan="5">No expenses</td></tr>'; const cats=getBusinessExpenseByCategory(); const ctx=document.getElementById('expenseBizChart')?.getContext('2d'); if(ctx){ if(businessChart)businessChart.destroy(); businessChart=new Chart(ctx,{type:'pie',data:{labels:Object.keys(cats),datasets:[{data:Object.values(cats),backgroundColor:['#ef4444','#f59e0b','#3b82f6','#a855f7','#22c55e','#06b6d4']}]},options:{responsive:true}});}}; document.getElementById('addBizExpenseForm')?.addEventListener('submit',(e)=>{ e.preventDefault(); businessExpenses.push({id:Date.now(),category:document.getElementById('expCategory').value,desc:document.getElementById('expDesc').value,amount:parseFloat(document.getElementById('expAmount').value),date:new Date().toISOString().split('T')[0]}); saveAllData(); addAction(`Added expense: ₹${document.getElementById('expAmount').value}`); update(); refreshDashboard(); e.target.reset();}); update(); }
+        function renderProfitLoss() { const {totalRevenue,totalExpenses,profit,margin}=getBusinessTotals(); const cats=getBusinessExpenseByCategory(); document.getElementById('profit-loss').innerHTML=`<h1>P&L Analysis</h1><div class="inline-card"><div class="stats-grid"><div class="card green"><h3>Revenue</h3><div class="amount">₹${totalRevenue.toLocaleString()}</div></div><div class="card red"><h3>Expenses</h3><div class="amount">₹${totalExpenses.toLocaleString()}</div></div><div class="card blue"><h3>Profit</h3><div class="amount">₹${profit.toLocaleString()}</div></div><div class="card purple"><h3>Margin</h3><div class="amount">${margin.toFixed(2)}%</div></div></div><h3>Expense Breakdown</h3><div class="category-list">${Object.entries(cats).filter(([_,a])=>a>0).map(([c,a])=>`<div class="category-item"><span>${c}</span><span>₹${a.toLocaleString()}</span></div>`).join('')}</div></div>`; }
+        function renderForecasting() { const {totalRevenue,totalExpenses}=getBusinessTotals(); const nextRevenue=totalRevenue*1.08; const nextExpenses=totalExpenses*1.05; const nextProfit=nextRevenue-nextExpenses; document.getElementById('forecasting').innerHTML=`<h1>Forecasting</h1><div class="inline-card"><h3>Next Quarter (8% Revenue Growth)</h3><div class="stats-grid"><div class="card"><h3>Projected Revenue</h3><div class="amount green">₹${nextRevenue.toLocaleString()}</div></div><div class="card"><h3>Projected Expenses</h3><div class="amount red">₹${nextExpenses.toLocaleString()}</div></div><div class="card"><h3>Projected Profit</h3><div class="amount blue">₹${nextProfit.toLocaleString()}</div></div></div></div>`; }
+        function renderBreakEven() { document.getElementById('break-even').innerHTML=`<h1>Break-even Analysis</h1><div class="inline-card"><div class="stats-grid"><div class="card"><h3>Fixed Costs</h3><div class="amount">₹50,000</div></div><div class="card"><h3>Price/Unit</h3><div class="amount">₹2,000</div></div><div class="card"><h3>Variable Cost</h3><div class="amount">₹800</div></div><div class="card purple"><h3>Break-even</h3><div class="amount">42 units</div></div></div><form id="beForm"><input type="number" id="beFixed" placeholder="Fixed Costs" value="50000"><input type="number" id="bePrice" placeholder="Price/Unit" value="2000"><input type="number" id="beVar" placeholder="Variable Cost" value="800"><button type="submit">Recalculate</button></form><div id="beResult"></div></div>`; document.getElementById('beForm')?.addEventListener('submit',(e)=>{ e.preventDefault(); const fixed=parseFloat(document.getElementById('beFixed').value); const price=parseFloat(document.getElementById('bePrice').value); const varCost=parseFloat(document.getElementById('beVar').value); const contr=price-varCost; const units=contr>0?Math.ceil(fixed/contr):0; document.getElementById('beResult').innerHTML=`<div class="alert-item success">Break-even: ${units} units</div>`;}); }
+        
+        function setupNavigation() { document.querySelectorAll('.nav-link').forEach(link=>{ link.addEventListener('click',function(){ const tabId=this.getAttribute('data-tab'); document.querySelectorAll('.tab-content').forEach(tab=>tab.classList.remove('active')); const activeTab=document.getElementById(tabId); if(activeTab) activeTab.classList.add('active'); document.querySelectorAll('.nav-link').forEach(nav=>nav.classList.remove('active')); this.classList.add('active'); }); }); }
+        document.querySelectorAll('.mode-btn').forEach(btn=>{ btn.addEventListener('click',function(){ document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('selected')); this.classList.add('selected'); }); });
+        window.clearAlerts=function(){ if(currentMode==='personal'){ personalAlerts=[]; localStorage.setItem('xfinance_personal_alerts',JSON.stringify(personalAlerts)); }else{ businessAlerts=[]; localStorage.setItem('xfinance_business_alerts',JSON.stringify(businessAlerts)); } renderAlerts(); addAction("Cleared all alerts"); };
+        window.deleteTransaction=function(id){ personalTransactions=personalTransactions.filter(t=>t.id!==id); saveAllData(); addAction("Deleted transaction"); refreshDashboard(); };
+        window.deleteGoal=function(id){ financialGoals=financialGoals.filter(g=>g.id!==id); saveAllData(); refreshDashboard(); };
+        window.deleteRevenue=function(id){ businessRevenue=businessRevenue.filter(r=>r.id!==id); saveAllData(); addAction("Deleted revenue"); refreshDashboard(); };
+        window.deleteBizExpense=function(id){ businessExpenses=businessExpenses.filter(e=>e.id!==id); saveAllData(); addAction("Deleted expense"); refreshDashboard(); };
+        window.addOCRTransaction=function(merchant,amount){ personalTransactions.push({id:Date.now(),desc:merchant,amount,type:'expense',category:'Others',date:new Date().toISOString().split('T')[0]}); saveAllData(); addAction(`OCR: ₹${amount} at ${merchant}`); refreshDashboard(); };
+        window.addBusinessExpenseOCR=function(vendor,amount){ businessExpenses.push({id:Date.now(),category:"Others",desc:vendor,amount,date:new Date().toISOString().split('T')[0]}); saveAllData(); addAction(`OCR invoice: ₹${amount} from ${vendor}`); refreshDashboard(); };
+        window.applySuggestion=applySuggestion; window.autoAdjustBudget=autoAdjustBudget; window.logout=logout; window.generatePDFReport=generatePDFReport; window.generateBusinessPDFReport=generateBusinessPDFReport;
+    </script>
+</body>
+</html>
