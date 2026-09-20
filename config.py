@@ -20,10 +20,12 @@ class Config:
     GOALS_FILE = DATA_DIR / 'goals.csv'
     SETTINGS_FILE = DATA_DIR / 'settings.json'
     
-    # OCR settings
-    TESSERACT_CMD = r'C:\Program Files\Tesseract-OCR\tesseract.exe'  # Windows
-    # TESSERACT_CMD = '/usr/bin/tesseract'  # Linux/Mac
-    
+   # OCR settings
+    TESSERACT_CMD = os.getenv(
+    "TESSERACT_CMD",
+    "/usr/bin/tesseract" if os.name != "nt"
+    else r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+)
     # Report settings
     REPORT_TEMPLATES = BASE_DIR / 'templates' / 'reports'
     
